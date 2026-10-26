@@ -2,10 +2,13 @@
 // Чистый Win32 API, один файл.
 //
 // Сборка:
+//   (рядом должны лежать icon.ico и resource.rc)
 //   MSVC (Developer Command Prompt):
-//     cl /EHsc /O2 /DUNICODE /D_UNICODE unpacker.cpp /link /SUBSYSTEM:WINDOWS
+//     rc /nologo resource.rc
+//     cl /EHsc /O2 /DUNICODE /D_UNICODE unpacker.cpp resource.res /link /SUBSYSTEM:WINDOWS
 //   MinGW-w64:
-//     g++ -O2 -municode -mwindows unpacker.cpp -o unpacker.exe -lcomctl32 -lcomdlg32 -lshell32 -lole32
+//     windres resource.rc -O coff -o resource.o
+//     g++ -O2 -municode -mwindows unpacker.cpp resource.o -o unpacker.exe -lcomctl32 -lcomdlg32 -lshell32 -lole32
 //
 // Для RAR/7z/ZIP нужен установленный 7-Zip (https://www.7-zip.org/).
 // Поддержка .torrent: поставьте libtorrent (vcpkg install libtorrent) и
@@ -617,7 +620,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int show) {
     wc.hInstance = hInst;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
-    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(1));   // иконка из resource.rc
+    if (!wc.hIcon) wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
     wc.lpszClassName = L"UnpackerWnd";
     RegisterClassW(&wc);
 
@@ -628,6 +632,13 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int show) {
     int x = (GetSystemMetrics(SM_CXSCREEN) - w) / 2, y = (GetSystemMetrics(SM_CYSCREEN) - h) / 2;
     HWND hwnd = CreateWindowExW(WS_EX_ACCEPTFILES, L"UnpackerWnd", L"Распаковщик", style, x, y, w, h,
                                 nullptr, nullptr, hInst, nullptr);
+    // маленькая иконка для заголовка окна, большая — для Alt+Tab и панели задач
+    HICON big = (HICON)LoadImageW(hInst, MAKEINTRESOURCEW(1), IMAGE_ICON,
+                                  GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
+    HICON sm = (HICON)LoadImageW(hInst, MAKEINTRESOURCEW(1), IMAGE_ICON,
+                                 GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+    if (big) SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)big);
+    if (sm)  SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)sm);
     ShowWindow(hwnd, show);
     UpdateWindow(hwnd);
 
