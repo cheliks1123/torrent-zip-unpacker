@@ -1,0 +1,50 @@
+name: Build unpacker.exe
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build (MSVC, static runtime)
+        shell: cmd
+        run: >
+          cl /nologo /EHsc /O2 /MT /std:c++17 /DUNICODE /D_UNICODE
+          unpacker.cpp /Fe:unpacker.exe
+          /link /SUBSYSTEM:WINDOWS
+
+      - name: Check result
+        shell: pwsh
+        run: |
+          if (-not (Test-Path unpacker.exe)) { throw "unpacker.exe not found" }
+          Get-Item unpacker.exe | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unpacker-windows-x64
+          path: unpacker.exe
+          if-no-files-found: error
+
+      - name: Publish release (on tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: unpacker.exe
