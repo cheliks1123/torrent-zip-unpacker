@@ -23,11 +23,15 @@ jobs:
         with:
           arch: x64
 
+      - name: Compile resources (icon)
+        shell: cmd
+        run: rc /nologo resource.rc
+
       - name: Build (MSVC, static runtime)
         shell: cmd
         run: >
-          cl /nologo /EHsc /O2 /MT /std:c++17 /DUNICODE /D_UNICODE
-          unpacker.cpp /Fe:unpacker.exe
+          cl /nologo /utf-8 /EHsc /O2 /MT /std:c++17 /DUNICODE /D_UNICODE
+          unpacker.cpp resource.res /Fe:unpacker.exe
           /link /SUBSYSTEM:WINDOWS
 
       - name: Check result
