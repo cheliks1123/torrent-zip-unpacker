@@ -1,14 +1,14 @@
-// Распаковщик ZIP / RAR / 7z (+ .torrent, опционально) — окно в стиле Rufus
+﻿// Распаковщик ZIP / RAR / 7z (+ .torrent, опционально) — окно в стиле Rufus
 // Чистый Win32 API, один файл.
 //
 // Сборка:
 //   (рядом должны лежать icon.ico и resource.rc)
 //   MSVC (Developer Command Prompt):
 //     rc /nologo resource.rc
-//     cl /EHsc /O2 /DUNICODE /D_UNICODE unpacker.cpp resource.res /link /SUBSYSTEM:WINDOWS
+//     cl /EHsc /O2 /utf-8 /DUNICODE /D_UNICODE unpacker.cpp resource.res /link /SUBSYSTEM:WINDOWS
 //   MinGW-w64:
 //     windres resource.rc -O coff -o resource.o
-//     g++ -O2 -municode -mwindows unpacker.cpp resource.o -o unpacker.exe -lcomctl32 -lcomdlg32 -lshell32 -lole32
+//     g++ -O2 -finput-charset=UTF-8 -municode -mwindows unpacker.cpp resource.o -o unpacker.exe -lcomctl32 -lcomdlg32 -lshell32 -lole32
 //
 // Для RAR/7z/ZIP нужен установленный 7-Zip (https://www.7-zip.org/).
 // Поддержка .torrent: поставьте libtorrent (vcpkg install libtorrent) и
@@ -637,6 +637,14 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int show) {
                                   GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
     HICON sm = (HICON)LoadImageW(hInst, MAKEINTRESOURCEW(1), IMAGE_ICON,
                                  GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+    if (!big || !sm) {   // запасной вариант: icon.ico рядом с .exe
+        wchar_t ep[MAX_PATH];
+        GetModuleFileNameW(nullptr, ep, MAX_PATH);
+        wstring ip = ep;
+        ip = ip.substr(0, ip.find_last_of(L"\\/") + 1) + L"icon.ico";
+        if (!big) big = (HICON)LoadImageW(nullptr, ip.c_str(), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE);
+        if (!sm)  sm  = (HICON)LoadImageW(nullptr, ip.c_str(), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE);
+    }
     if (big) SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)big);
     if (sm)  SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)sm);
     ShowWindow(hwnd, show);
